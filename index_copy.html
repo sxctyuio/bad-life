@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Worker Reality</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #fafafa;
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1000px;
+      background: white;
+      border: 2px solid #1a1a1a;
+      border-radius: 12px;
+      padding: 32px;
+    }
+
+    .title {
+      text-align: center;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .subtitle span {
+      background: #f5f5f5;
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin: 0 4px;
+    }
+
+    .source-citation {
+      text-align: center;
+      font-size: 9px;
+      color: #aaa;
+      margin-bottom: 20px;
+    }
+
+    .source-citation a {
+      color: #888;
+      text-decoration: none;
+    }
+
+    .source-citation a:hover {
+      text-decoration: underline;
+    }
+
+    .visualization {
+      position: relative;
+      width: 100%;
+      height: 420px;
+    }
+
+    .main-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Thought bubble */
+    .thought-bubble {
+      position: absolute;
+      background: white;
+      border: 2px solid #1a1a1a;
+      border-radius: 16px;
+      padding: 14px 20px;
+      font-size: 14px;
+      line-height: 1.5;
+      opacity: 0;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      max-width: 280px;
+      text-align: center;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .thought-bubble.visible {
+      opacity: 1;
+    }
+
+    .thought-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-top: 12px solid #1a1a1a;
+    }
+
+    .thought-bubble::before {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 9px solid transparent;
+      border-right: 9px solid transparent;
+      border-top: 9px solid white;
+      z-index: 1;
+    }
+
+    .thought-text {
+      color: #333;
+    }
+
+    /* Restart button */
+    .restart-btn {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      padding: 8px 16px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #666;
+    }
+
+    .restart-btn:hover {
+      background: #f5f5f5;
+      border-color: #999;
+    }
+
+    /* Money amount animation */
+    @keyframes moneyPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .money-warning {
+      animation: moneyPulse 0.5s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">Worker Reality</div>
+    <div class="subtitle">
+      <strong>Current:</strong> <span>$14/hr</span> × <span>38.5 hrs/wk</span> = <span>$2,217/mo</span> 
+      &nbsp;&nbsp;|&nbsp;&nbsp;
+    </div>
+
+    <div class="source-citation">
+      Source: <a href="https://www.stlouisfed.org/on-the-economy/2023/nov/overemployed-workers-trends-multiple-jobholders" target="_blank">St. Louis Federal Reserve, "Trends on Multiple Jobholders" (Nov 2023)</a>
+    <div class="visualization">
+      <div class="thought-bubble" id="thoughtBubble" style="display:none;">
+        <span class="thought-text" id="thoughtText"></span>
+      </div>
+      
+      <svg class="main-svg" viewBox="0 0 800 400" id="mainSvg">
+        <defs>
+          <!-- Job 1 icon (McDonald's style) -->
+          <symbol id="job1Icon" viewBox="0 0 40 40">
+            <!-- Building with M arch -->
+            <rect x="4" y="12" width="32" height="24" fill="none" stroke="currentColor" stroke-width="2"/>
+            <!-- Golden arches M -->
+            <path d="M10 32 L10 20 Q14 12 18 20 L18 32 M22 32 L22 20 Q26 12 30 20 L30 32" fill="none" stroke="currentColor" stroke-width="2"/>
+          </symbol>
+
+          <!-- Job 2 icon (generic store) -->
+          <symbol id="job2Icon" viewBox="0 0 40 40">
+            <!-- Store front -->
+            <rect x="4" y="14" width="32" height="22" fill="none" stroke="currentColor" stroke-width="2"/>
+            <!-- Roof/awning -->
+            <path d="M2 14 L20 4 L38 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <!-- Door -->
+            <rect x="15" y="24" width="10" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <!-- Window -->
+            <rect x="7" y="18" width="6" height="6" fill="none" stroke="currentColor" stroke-width="1"/>
+            <rect x="27" y="18" width="6" height="6" fill="none" stroke="currentColor" stroke-width="1"/>
+          </symbol>
+
+          <!-- Arrow marker -->
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#666"/>
+          </marker>
+
+          <!-- Dollar bill for money pile -->
+          <symbol id="billIcon" viewBox="0 0 40 20">
+            <rect x="1" y="1" width="38" height="18" rx="2" fill="#4a4" stroke="#2a7d2a" stroke-width="1"/>
+            <circle cx="20" cy="10" r="6" fill="none" stroke="#2a7d2a" stroke-width="1"/>
+            <text x="20" y="14" text-anchor="middle" font-size="9" font-weight="bold" fill="#1a5a1a">$</text>
+          </symbol>
+
+          <!-- SNAP icon (EBT Card) -->
+          <symbol id="snapIcon" viewBox="0 0 40 40">
+            <!-- Card -->
+            <rect x="4" y="8" width="32" height="24" rx="3" fill="none" stroke="currentColor" stroke-width="2"/>
+            <!-- Chip -->
+            <rect x="8" y="14" width="8" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <!-- Text lines -->
+            <line x1="20" y1="15" x2="32" y2="15" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="20" y1="20" x2="28" y2="20" stroke="currentColor" stroke-width="1"/>
+            <line x1="20" y1="24" x2="32" y2="24" stroke="currentColor" stroke-width="1"/>
+          </symbol>
+
+          <!-- Medicaid icon (Shield with cross) -->
+          <symbol id="medicaidIcon" viewBox="0 0 40 40">
+            <!-- Shield -->
+            <path d="M20 4 L34 10 L34 22 Q34 34 20 38 Q6 34 6 22 L6 10 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+            <!-- Cross -->
+            <rect x="17" y="12" width="6" height="16" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="12" y="17" width="16" height="6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          </symbol>
+        </defs>
+
+        <!-- Icons row at top -->
+        <g id="iconsRow">
+          <!-- Will be populated by JS -->
+        </g>
+
+        <!-- Static arrows from worker to needs showing costs -->
+        <g id="needArrows">
+          <!-- Arrow to Health (index 0: x = 288) -->
+          <line x1="400" y1="185" x2="288" y2="82" stroke="#c44" stroke-width="1.5" marker-end="url(#arrowhead)" stroke-dasharray="4,2"/>
+
+          <!-- Arrow to Rent (index 1: x = 363) -->
+          <line x1="400" y1="185" x2="363" y2="82" stroke="#c44" stroke-width="1.5" marker-end="url(#arrowhead)" stroke-dasharray="4,2"/>
+
+          <!-- Arrow to Utilities (index 2: x = 438) -->
+          <line x1="400" y1="185" x2="438" y2="82" stroke="#c44" stroke-width="1.5" marker-end="url(#arrowhead)" stroke-dasharray="4,2"/>
+
+          <!-- Arrow to Food (index 3: x = 513) -->
+          <line x1="400" y1="185" x2="513" y2="82" stroke="#c44" stroke-width="1.5" marker-end="url(#arrowhead)" stroke-dasharray="4,2"/>
+        </g>
+
+        <!-- "Can't afford any of it" label -->
+        <g id="cantAffordLabel" transform="translate(400, 145)">
+          <rect x="-95" y="-12" width="190" height="24" rx="4" fill="#ffebee" stroke="#c44" stroke-width="1.5"/>
+          <text x="0" y="5" text-anchor="middle" font-size="12" fill="#c44" font-weight="600">Can't afford any of it.</text>
+        </g>
+
+        <!-- Money transfer animations layer -->
+        <g id="moneyAnimations"></g>
+
+        <!-- Jobs area on the left -->
+        <g id="jobsArea">
+          <!-- Job 1 (Main job - McDonald's) -->
+          <g id="job1Group" transform="translate(180, 190)">
+            <circle r="24" fill="white" stroke="#1a1a1a" stroke-width="1.5"/>
+            <use href="#job1Icon" x="-14" y="-14" width="28" height="28" style="color: #1a1a1a"/>
+            <text x="0" y="36" text-anchor="middle" font-size="9" fill="#666">Job 1 (Main)</text>
+            <text x="0" y="47" text-anchor="middle" font-size="8" fill="#888">$14/hr</text>
+          </g>
+
+          <!-- Arrow from worker to Job 1 -->
+          <line x1="355" y1="210" x2="220" y2="198" stroke="#666" stroke-width="1.5" marker-end="url(#arrowhead)" stroke-dasharray="3,2"/>
+          <text x="290" y="197" text-anchor="middle" font-size="10" fill="#444" transform="rotate(4, 290, 197)">
+            <tspan font-weight="600">25 hrs/wk</tspan>
+          </text>
+
+          <!-- Job 2 (Second job) -->
+          <g id="job2Group" transform="translate(180, 265)">
+            <circle r="24" fill="white" stroke="#1a1a1a" stroke-width="1.5"/>
+            <use href="#job2Icon" x="-14" y="-14" width="28" height="28" style="color: #1a1a1a"/>
+            <text x="0" y="36" text-anchor="middle" font-size="9" fill="#666">Job 2</text>
+            <text x="0" y="47" text-anchor="middle" font-size="8" fill="#888">$12/hr</text>
+          </g>
+
+          <!-- Arrow from worker to Job 2 -->
+          <line x1="355" y1="235" x2="220" y2="258" stroke="#666" stroke-width="1.5" marker-end="url(#arrowhead)" stroke-dasharray="3,2"/>
+          <text x="288" y="260" text-anchor="middle" font-size="10" fill="#444" transform="rotate(-10, 288, 260)">
+            <tspan font-weight="600">13.5 hrs/wk</tspan>
+          </text>
+
+          <!-- Irregular work hours label between arrows -->
+          <text x="290" y="228" text-anchor="middle" font-size="9" fill="#c44" font-style="italic">irregular work hours</text>
+        </g>
+
+        <!-- Worker area at bottom center -->
+        <g id="workerArea" transform="translate(400, 220)">
+          <!-- Worker -->
+          <image href="images/sad-woman.png" x="-30" y="-42" width="60" height="85" id="worker"/>
+
+          <!-- Kids area (right side) -->
+          <g id="kidsArea" transform="translate(130, 0)">
+            <!-- Arrow from worker to kids with label -->
+            <line x1="-90" y1="0" x2="-45" y2="0" stroke="#c44" stroke-width="1.5" stroke-dasharray="4,2"/>
+            <text x="-68" y="-8" text-anchor="middle" font-size="8" fill="#c44" font-style="italic">Can't spend</text>
+            <text x="-68" y="14" text-anchor="middle" font-size="8" fill="#c44" font-style="italic">time with</text>
+
+            <!-- Kids image -->
+            <image href="images/kids.png" x="-22" y="-28" width="44" height="44"/>
+
+            <!-- Kids label -->
+            <text x="0" y="28" text-anchor="middle" font-size="10" fill="#666" font-weight="500">Kids</text>
+
+            <!-- Arrows from kids to negative outcomes -->
+            <line x1="22" y1="-10" x2="48" y2="-32" stroke="#c44" stroke-width="1" marker-end="url(#arrowhead)" stroke-dasharray="3,2"/>
+            <line x1="22" y1="0" x2="48" y2="0" stroke="#c44" stroke-width="1" marker-end="url(#arrowhead)" stroke-dasharray="3,2"/>
+            <line x1="22" y1="10" x2="48" y2="32" stroke="#c44" stroke-width="1" marker-end="url(#arrowhead)" stroke-dasharray="3,2"/>
+
+            <!-- Negative outcome icons (right of kids) -->
+
+            <!-- Poor Education (top right) -->
+            <g transform="translate(68, -40)">
+              <circle r="18" fill="#fff5f5" stroke="#c44" stroke-width="1.5"/>
+              <!-- Book with X -->
+              <rect x="-8" y="-5" width="16" height="10" fill="none" stroke="#c44" stroke-width="1.2"/>
+              <line x1="-8" y1="-5" x2="8" y2="5" stroke="#c44" stroke-width="1.2"/>
+              <line x1="8" y1="-5" x2="-8" y2="5" stroke="#c44" stroke-width="1.2"/>
+              <text x="24" y="-2" text-anchor="start" font-size="9" fill="#c44">Poor</text>
+              <text x="24" y="9" text-anchor="start" font-size="9" fill="#c44">Education</text>
+            </g>
+
+            <!-- Bad Friends/Habits (middle right) -->
+            <g transform="translate(68, 0)">
+              <image href="images/bad_habits.png" x="-18" y="-18" width="36" height="36"/>
+              <text x="24" y="-2" text-anchor="start" font-size="9" fill="#c44">Bad Habits</text>
+              <text x="24" y="9" text-anchor="start" font-size="9" fill="#c44">& Friends</text>
+            </g>
+
+            <!-- Uncertain Future (bottom right) -->
+            <g transform="translate(68, 40)">
+              <image href="images/uncertain_future.png" x="-18" y="-18" width="36" height="36"/>
+              <text x="24" y="-2" text-anchor="start" font-size="9" fill="#c44">Uncertain</text>
+              <text x="24" y="9" text-anchor="start" font-size="9" fill="#c44">Future</text>
+            </g>
+          </g>
+        </g>
+
+        <!-- Government Subsidies section below worker -->
+        <g id="subsidiesArea" transform="translate(400, 325)">
+          <!-- SNAP -->
+          <g id="snapGroup" transform="translate(-50, 5)">
+            <circle r="20" fill="white" stroke="#1976d2" stroke-width="1.5"/>
+            <use href="#snapIcon" x="-12" y="-12" width="24" height="24" style="color: #1976d2"/>
+            <text x="0" y="30" text-anchor="middle" font-size="9" fill="#666">SNAP</text>
+          </g>
+
+          <!-- Medicaid -->
+          <g id="medicaidGroup" transform="translate(50, 5)">
+            <circle r="20" fill="white" stroke="#7b1fa2" stroke-width="1.5"/>
+            <use href="#medicaidIcon" x="-12" y="-12" width="24" height="24" style="color: #7b1fa2"/>
+            <text x="0" y="30" text-anchor="middle" font-size="9" fill="#666">Medicaid</text>
+          </g>
+
+          <!-- Arrows from subsidies to worker -->
+          <line x1="-30" y1="-15" x2="-15" y2="-60" stroke="#1976d2" stroke-width="1" marker-end="url(#arrowhead)"/>
+          <line x1="30" y1="-15" x2="15" y2="-60" stroke="#7b1fa2" stroke-width="1" marker-end="url(#arrowhead)"/>
+
+          <!-- Government Subsidies label (below icons) -->
+          <text x="0" y="48" text-anchor="middle" font-size="10" fill="#666" letter-spacing="1">GOVERNMENT SUBSIDIES</text>
+          <text x="0" y="60" text-anchor="middle" font-size="8" fill="#999">(Taxpayer funded)</text>
+        </g>
+      </svg>
+
+      <button class="restart-btn" id="restartBtn" style="display:none;">↻ Restart</button>
+    </div>
+  </div>
+
+  <script>
+    // ============ CONFIGURATION ============
+    const icons = [
+      { id: 'health', image: 'images/health.png', label: 'Health' },
+      { id: 'rent', image: 'images/rent.png', label: 'Rent' },
+      { id: 'car', image: 'images/utilities.png', label: 'Utilities' },
+      { id: 'food', image: 'images/Food.png', label: 'Food' },
+    ];
+
+    const iconStartY = 55;
+    const iconDropY = 55;
+    const iconSize = 32;
+    const iconSpacing = 75;
+    const startX = 288;
+
+    const workerX = 400;
+    const workerY = 220;
+    const moneyPileX = workerX + 80;
+    const moneyPileY = workerY + 10;
+
+    // Money configuration
+    const STARTING_MONEY = 2217; // $14/hr × 25 hrs × 4.33 weeks + $12/hr × 13.5 hrs × 4.33 weeks
+    const COSTS = {
+      hospital: 400,
+      rent: 1200,
+      car: 800,
+      food_healthy: 350,
+      food_cheap: 100,
+    };
+
+    // ============ STATE ============
+    let currentMoney = STARTING_MONEY;
+    let animationRunning = true;
+
+    // ============ DOM ELEMENTS ============
+    const mainSvg = document.getElementById('mainSvg');
+    const iconsRow = document.getElementById('iconsRow');
+    const moneyAnimations = document.getElementById('moneyAnimations');
+    const thoughtBubble = document.getElementById('thoughtBubble');
+    const thoughtText = document.getElementById('thoughtText');
+    const restartBtn = document.getElementById('restartBtn');
+    const moneyDisplay = document.getElementById('moneyDisplay');
+
+    // ============ INITIALIZATION ============
+    function initializeIcons() {
+      iconsRow.innerHTML = '';
+      
+      icons.forEach((item, index) => {
+        const x = startX + index * iconSpacing;
+        
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.setAttribute('id', `icon-${item.id}`);
+        group.setAttribute('data-base-x', x);
+        group.setAttribute('data-base-y', iconStartY);
+        group.style.transform = `translate(${x}px, ${iconStartY}px)`;
+        group.style.transition = 'transform 0.8s ease-out';
+
+        // Background circle
+        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        bg.setAttribute('r', iconSize / 2 + 6);
+        bg.setAttribute('fill', 'white');
+        bg.setAttribute('stroke', '#2a7d2a');
+        bg.setAttribute('stroke-width', '2.5');
+        bg.setAttribute('class', 'icon-bg');
+        group.appendChild(bg);
+
+        // Icon (using image)
+        const useIcon = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        useIcon.setAttribute('href', item.image);
+        useIcon.setAttribute('x', -iconSize / 2);
+        useIcon.setAttribute('y', -iconSize / 2);
+        useIcon.setAttribute('width', iconSize);
+        useIcon.setAttribute('height', iconSize);
+        useIcon.setAttribute('class', 'icon-use');
+        group.appendChild(useIcon);
+
+        // Label - ABOVE the icon
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('y', -(iconSize / 2 + 12));
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('font-size', '11');
+        label.setAttribute('fill', '#666');
+        label.textContent = item.label;
+        group.appendChild(label);
+
+        iconsRow.appendChild(group);
+      });
+    }
+
+    function resetMoney() {
+      currentMoney = STARTING_MONEY;
+      updateMoneyDisplay();
+      
+      for (let i = 1; i <= 5; i++) {
+        const bill = document.getElementById(`bill${i}`);
+        if (bill) {
+          bill.style.opacity = '1';
+          bill.style.transition = 'opacity 0.3s ease';
+        }
+      }
+    }
+
+    function updateMoneyDisplay() {
+      moneyDisplay.textContent = `$${currentMoney.toLocaleString()}`;
+      
+      // Update bill visibility based on money remaining
+      const moneyPercent = currentMoney / STARTING_MONEY;
+      const billsToShow = Math.ceil(moneyPercent * 5);
+      
+      for (let i = 1; i <= 5; i++) {
+        const bill = document.getElementById(`bill${i}`);
+        if (bill) {
+          bill.style.opacity = i <= billsToShow ? '1' : '0.15';
+        }
+      }
+
+      // Color change when low
+      if (currentMoney < 200) {
+        moneyDisplay.setAttribute('fill', '#c44');
+      } else if (currentMoney < 500) {
+        moneyDisplay.setAttribute('fill', '#e89b00');
+      } else {
+        moneyDisplay.setAttribute('fill', '#1a1a1a');
+      }
+    }
+
+    function resetIcons() {
+      icons.forEach(item => {
+        const group = document.getElementById(`icon-${item.id}`);
+        const x = parseInt(group.getAttribute('data-base-x'));
+        group.style.transform = `translate(${x}px, ${iconStartY}px)`;
+
+        const bg = group.querySelector('.icon-bg');
+        const icon = group.querySelector('.icon-use');
+        bg.setAttribute('stroke', '#2a7d2a');
+        if (icon) icon.style.opacity = '1';
+        group.style.opacity = '1';
+      });
+    }
+
+    // ============ ANIMATION HELPERS ============
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function dropIcon(iconId) {
+      const group = document.getElementById(`icon-${iconId}`);
+      const x = parseInt(group.getAttribute('data-base-x'));
+      group.style.transform = `translate(${x}px, ${iconDropY}px)`;
+    }
+
+    function raiseIcon(iconId) {
+      const group = document.getElementById(`icon-${iconId}`);
+      const x = parseInt(group.getAttribute('data-base-x'));
+      group.style.transform = `translate(${x}px, ${iconStartY}px)`;
+    }
+
+    function setIconState(iconId, state) {
+      const group = document.getElementById(`icon-${iconId}`);
+      const bg = group.querySelector('.icon-bg');
+      const icon = group.querySelector('.icon-use');
+
+      if (state === 'red') {
+        bg.setAttribute('stroke', '#c44');
+        if (icon) icon.style.opacity = '0.7';
+      } else if (state === 'green') {
+        bg.setAttribute('stroke', '#2a7d2a');
+        if (icon) icon.style.opacity = '1';
+      } else if (state === 'faded') {
+        group.style.opacity = '0.35';
+        bg.setAttribute('stroke', '#999');
+      } else if (state === 'warning') {
+        bg.setAttribute('stroke', '#e89b00');
+        if (icon) icon.style.opacity = '0.8';
+      }
+    }
+
+    function showThought(text, iconId = null) {
+      if (iconId) {
+        const group = document.getElementById(`icon-${iconId}`);
+        const x = parseInt(group.getAttribute('data-base-x'));
+        thoughtBubble.style.left = `${(x / 800) * 100}%`;
+        thoughtBubble.style.top = '220px';
+      } else {
+        thoughtBubble.style.left = '50%';
+        thoughtBubble.style.top = '220px';
+      }
+      thoughtBubble.style.transform = 'translateX(-50%)';
+      
+      thoughtText.textContent = text;
+      thoughtBubble.classList.add('visible');
+    }
+
+    function hideThought() {
+      thoughtBubble.classList.remove('visible');
+    }
+
+    function spendMoney(amount, toIconId) {
+      return new Promise(resolve => {
+        const targetGroup = document.getElementById(`icon-${toIconId}`);
+        const targetX = parseInt(targetGroup.getAttribute('data-base-x'));
+        const isDropped = targetGroup.style.transform.includes(String(iconDropY));
+        const targetY = isDropped ? iconDropY : iconStartY;
+
+        // Create flying bill
+        const flyingBill = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const billUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        billUse.setAttribute('href', '#billIcon');
+        billUse.setAttribute('width', '35');
+        billUse.setAttribute('height', '17');
+        flyingBill.appendChild(billUse);
+        flyingBill.style.transition = 'transform 0.7s ease-in-out, opacity 0.3s ease';
+        flyingBill.style.transform = `translate(${moneyPileX}px, ${moneyPileY}px)`;
+        moneyAnimations.appendChild(flyingBill);
+
+        // Animate
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            flyingBill.style.transform = `translate(${targetX - 17}px, ${targetY}px)`;
+            
+            // Update money
+            currentMoney = Math.max(0, currentMoney - amount);
+            updateMoneyDisplay();
+
+            setTimeout(() => {
+              flyingBill.style.opacity = '0';
+              setTimeout(() => flyingBill.remove(), 300);
+              resolve();
+            }, 600);
+          }, 50);
+        });
+      });
+    }
+
+    function setWorkerMood(mood) {
+      const mouth = document.getElementById('workerMouth');
+      if (mood === 'sad') {
+        mouth.setAttribute('d', 'M21 18 Q25 15 29 18');
+      } else if (mood === 'worried') {
+        mouth.setAttribute('d', 'M21 17 L29 17');
+      } else {
+        mouth.setAttribute('d', 'M21 16 Q25 19 29 16');
+      }
+    }
+
+    // ============ MAIN ANIMATION SEQUENCE ============
+    async function runAnimation() {
+      // Static display - no animation
+      setWorkerMood('sad');
+
+      // Set all icons to red (can't afford)
+      icons.forEach(item => {
+        const group = document.getElementById(`icon-${item.id}`);
+        if (group) {
+          const bg = group.querySelector('.icon-bg');
+          const icon = group.querySelector('.icon-use');
+          if (bg) {
+            bg.setAttribute('stroke', '#c44');
+          }
+          if (icon) {
+            icon.style.color = '#c44';
+          }
+        }
+      });
+    }
+
+    // ============ EVENT LISTENERS ============
+    restartBtn.addEventListener('click', () => {
+      animationRunning = true;
+      runAnimation();
+    });
+
+    // ============ START ============
+    initializeIcons();
+    runAnimation();
+  </script>
+</body>
+</html>
